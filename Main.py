@@ -99,50 +99,63 @@ def search_books():
         book_list.insert("", tk.END, values=book)
 
 def show_book_details(event):
+
     selected = book_list.selection()
 
     if not selected:
         return
 
     book = book_list.item(selected[0], "values")
-
     book_id = book[0]
 
     cursor.execute("""
-    SELECT title, subtitle, authors, publisher, published_date, description, page_count, categories, average_rating, ratings_count, language, isbn_13, isbn_10, list_price, currency
-    FROM books
-    WHERE book_id = ?
+        SELECT title, subtitle, authors, publisher, published_date,
+               description, page_count, categories, average_rating,
+               ratings_count, language, isbn_13, isbn_10,
+               list_price, currency
+        FROM books
+        WHERE book_id = ?
     """, (book_id,))
 
     details = cursor.fetchone()
 
     details_text = (
-        "Title: " + str(details[0]) + "\n"
-        "Subtitle: " + str(details[1]) + "\n"
-        "Author: " + str(details[2]) + "\n"
-        "Publisher: " + str(details[3]) + "\n"
-        "Published: " + str(details[4]) + "\n"
-        "Pages: " + str(details[5]) + "\n"
-        "Category: " + str(details[6]) + "\n"
-        "Rating: " + str(details[7]) + "\n"
-        "Ratings: " + str(details[8]) + "\n"
-        "Language: " + str(details[9]) + "\n"
-        "ISBN-13: " + str(details[10]) + "\n"
-        "ISBN-10: " + str(details[11]) + "\n"
-        "Price: " + str(details[12]) + " " + str(details[13])
+        "Title: " + str(details[0]) + "\n\n"
+        "Subtitle: " + str(details[1]) + "\n\n"
+        "Author: " + str(details[2]) + "\n\n"
+        "Publisher: " + str(details[3]) + "\n\n"
+        "Published: " + str(details[4]) + "\n\n"
+        "Pages: " + str(details[6]) + "\n\n"
+        "Category: " + str(details[7]) + "\n\n"
+        "Rating: " + ("" if details[8] == 0.0 else str(details[8])) + "\n\n"
+        "Ratings: " + str(details[9]) + "\n\n"
+        "Language: " + str(details[10]) + "\n\n"
+        "ISBN-13: " + str(details[11]) + "\n\n"
+        "ISBN-10: " + str(details[12]) + "\n\n"
+        "Price: " + str(details[13]) + " " + str(details[14])
     )
 
-    details_label.config(text=details_text)
+    details_textbox.config(state="normal")
+    details_textbox.delete("1.0", tk.END)
+    details_textbox.insert(tk.END, details_text)
+    details_textbox.config(state="disabled")
 
-    book_list.bind("<<TreeviewSelect>>", show_book_details)
+    description = str(details[5])
 
+    description_textbox.config(state="normal")
+    description_textbox.delete("1.0", tk.END)
+    description_textbox.insert(tk.END, description)
+    description_textbox.config(state="disabled")
+
+    if len(description) > 700:
+        description = description[:700] + "..."
 
 window = tk.Tk()
 window.configure(bg="#5884B3")
 
 window.title("Library Database")
 
-window.geometry("800x600")
+window.geometry("900x650")
 
 title_label = tk.Label(window, text="Library Database", font=("Arial", 24), bg="#5884B3")
 title_label.pack(pady=20)
@@ -185,12 +198,111 @@ book_list.heading("Author", text="Author")
 book_list.heading("Rating", text="Rating")
 
 book_list.pack(fill="both", expand=True, padx=20, pady=20)
+book_list.bind("<<TreeviewSelect>>", show_book_details)
 
 details_frame = tk.Frame(window, bg="#5884B3")
-details_frame.pack(pady=10)
+details_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-details_label = tk.Label(details_frame, text="Select a book to see more details.", bg="#5884B3", font=("Arial", 12))
-details_label.pack()
+
+# =========================
+# LEFT SIDE - BOOK DETAILS
+# =========================
+
+info_frame = tk.Frame(details_frame, bg="#5884B3")
+info_frame.pack(side="left", fill="both", expand=True, padx=(0, 10))
+
+info_title = tk.Label(
+    info_frame,
+    text="Book Details",
+    bg="#5884B3",
+    font=("Arial", 12, "bold")
+)
+
+info_title.pack(anchor="w")
+
+
+info_content_frame = tk.Frame(info_frame)
+info_content_frame.pack(fill="both", expand=True)
+
+
+info_scrollbar = tk.Scrollbar(
+    info_content_frame,
+    orient="vertical"
+)
+
+info_scrollbar.pack(side="right", fill="y")
+
+
+details_textbox = tk.Text(
+    info_content_frame,
+    bg="#AFB1B3",
+    font=("Arial", 10),
+    wrap="word",
+    yscrollcommand=info_scrollbar.set
+)
+
+details_textbox.pack(side="left", fill="both", expand=True)
+
+info_scrollbar.config(
+    command=details_textbox.yview
+)
+
+details_textbox.config(state="disabled")
+
+description_frame = tk.Frame(
+    details_frame,
+    bg="#5884B3"
+)
+
+description_frame.pack(
+    side="right",
+    fill="both",
+    expand=True,
+    padx=(10, 0)
+)
+
+
+description_title = tk.Label(
+    description_frame,
+    text="Description",
+    bg="#5884B3",
+    font=("Arial", 12, "bold")
+)
+
+description_title.pack(anchor="w")
+
+
+description_content_frame = tk.Frame(description_frame)
+description_content_frame.pack(fill="both", expand=True)
+
+
+description_scrollbar = tk.Scrollbar(
+    description_content_frame,
+    orient="vertical"
+)
+
+description_scrollbar.pack(side="right", fill="y")
+
+
+description_textbox = tk.Text(
+    description_content_frame,
+    bg="#AFB1B3",
+    font=("Arial", 10),
+    wrap="word",
+    yscrollcommand=description_scrollbar.set
+)
+
+description_textbox.pack(
+    side="left",
+    fill="both",
+    expand=True
+)
+
+description_scrollbar.config(
+    command=description_textbox.yview
+)
+
+description_textbox.config(state="disabled")
 
 exit_button = tk.Button(window, text="Exit", command=window.destroy)
 exit_button.pack(pady=10)
