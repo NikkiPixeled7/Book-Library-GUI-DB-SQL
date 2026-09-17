@@ -28,19 +28,86 @@ CREATE TABLE IF NOT EXISTS books (
 )
 """)
 
-with open("google_books_dataset.csv", "r", encoding="utf-8") as file:
-    reader = csv.DictReader(file)
-    for row in reader:
-        cursor.execute("""
-        INSERT INTO books (title, subtitle, authors, publisher, published_date, description, page_count, categories, average_rating, ratings_count, language, isbn_13, isbn_10, list_price, currency)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            row["title"], row["subtitle"], row["authors"], row["publisher"], row["published_date"],
-            row["description"], int(float(row["page_count"] or 0)), row["categories"], float(row["average_rating"] or 0),
-            int(float(row["ratings_count"] or 0)), row["language"], row["isbn_13"], row["isbn_10"], float(row["list_price"] or 0), row["currency"]
-        ))
+cursor.execute("SELECT COUNT(*) FROM books")
+book_count = cursor.fetchone()[0]
 
-connection.commit()
+if book_count == 0:
+
+    with open("google_books_dataset.csv", "r", encoding="utf-8") as file:
+
+        reader = csv.DictReader(file)
+
+        for row in reader:
+            cursor.execute("""
+            INSERT INTO books (
+                title, subtitle, authors, publisher, published_date,
+                description, page_count, categories, average_rating,
+                ratings_count, language, isbn_13, isbn_10,
+                list_price, currency
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                row["title"],
+                row["subtitle"],
+                row["authors"],
+                row["publisher"],
+                row["published_date"],
+                row["description"],
+                int(float(row["page_count"] or 0)),
+                row["categories"],
+                float(row["average_rating"] or 0),
+                int(float(row["ratings_count"] or 0)),
+                row["language"],
+                row["isbn_13"],
+                row["isbn_10"],
+                float(row["list_price"] or 0),
+                row["currency"]
+            ))
+
+    connection.commit()
+
+def refresh_books():
+
+    for book in book_list.get_children():
+        book_list.delete(book)
+
+    cursor.execute("""
+        SELECT book_id, title, authors, average_rating
+        FROM books
+    """)
+
+    books = cursor.fetchall()
+
+    for book in books:
+
+        if book[3] == 0.0:
+            book = (book[0], book[1], book[2], "")
+
+        book_list.insert("", tk.END, values=book)
+
+def sort_books(event):
+    
+    sort_by = sort_dropdown.get()
+
+    if sort_by == "Title":
+        cursor.execute("SELECT book_id, title, authors, average_rating FROM books ORDER BY title")
+    elif sort_by == "Author":
+        cursor.execute("SELECT book_id, title, authors, average_rating FROM books ORDER BY authors")
+    elif sort_by == "Rating":
+        cursor.execute("SELECT book_id, title, authors, average_rating FROM books ORDER BY average_rating DESC")
+    elif sort_by == "Price":
+        cursor.execute("SELECT book_id, title, authors, average_rating FROM books ORDER BY list_price")
+
+    books = cursor.fetchall()
+
+    for book in book_list.get_children():
+        book_list.delete(book)
+
+    for book in books:
+        if book[3] == 0.0:
+            book = (book[0], book[1], book[2], "")
+
+        book_list.insert("", tk.END, values=book)
 
 def show_all_books():
 
@@ -175,7 +242,7 @@ search_button.pack(side="left", padx=5)
 button_frame = tk.Frame(window, bg="#5884B3")
 button_frame.pack(pady=10)
 
-show_all_button = tk.Button(button_frame, text="Import DB", command=show_all_books)
+show_all_button = tk.Button(button_frame, text="Show All", command=show_all_books)
 show_all_button.pack(side="left", padx=5)
 
 add_button = tk.Button(button_frame, text="Add Book")
@@ -184,11 +251,17 @@ add_button.pack(side="left", padx=5)
 delete_button = tk.Button(button_frame, text="Delete Book")
 delete_button.pack(side="left", padx=5)
 
+button_frame2 = tk.Frame(window, bg="#5884B3")
+button_frame2.pack(pady=10)
+
 sort_options = ["Title", "Author", "Rating", "Price"]
 
-sort_dropdown = ttk.Combobox(window, values=sort_options, state="readonly")
+sort_dropdown = ttk.Combobox(button_frame2, values=sort_options, state="readonly") # read only because you are able to write in the dropdown box thing
 sort_dropdown.set("Title")
-sort_dropdown.pack(pady=5)
+sort_dropdown.pack(side="left", pady=5)
+
+refresh_button = tk.Button(button_frame2, text="Refresh", command=refresh_books)
+refresh_button.pack(side="left", padx=5)
 
 book_list = ttk.Treeview(window, columns=("ID", "Title", "Author", "Rating"), show="headings")
 
@@ -202,11 +275,6 @@ book_list.bind("<<TreeviewSelect>>", show_book_details)
 
 details_frame = tk.Frame(window, bg="#5884B3")
 details_frame.pack(fill="both", expand=True, padx=20, pady=10)
-
-
-# =========================
-# LEFT SIDE - BOOK DETAILS
-# =========================
 
 info_frame = tk.Frame(details_frame, bg="#5884B3")
 info_frame.pack(side="left", fill="both", expand=True, padx=(0, 10))
