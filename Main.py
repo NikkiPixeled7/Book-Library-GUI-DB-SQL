@@ -72,7 +72,7 @@ def refresh_books():
         book_list.delete(book)
 
     cursor.execute("""
-        SELECT book_id, title, authors, average_rating
+        SELECT book_id, title, authors, average_rating, list_price
         FROM books
     """)
 
@@ -86,17 +86,58 @@ def refresh_books():
         book_list.insert("", tk.END, values=book)
 
 def sort_books(event):
-    
+
     sort_by = sort_dropdown.get()
+    sort_direction = sort_order_dropdown.get()
+
+    if sort_direction == "Ascending":
+        direction = "ASC"
+    else:
+        direction = "DESC"
 
     if sort_by == "Title":
-        cursor.execute("SELECT book_id, title, authors, average_rating FROM books ORDER BY title")
+        cursor.execute(
+            f"""
+            SELECT book_id, title, authors, average_rating, list_price
+            FROM books
+            ORDER BY
+                CASE WHEN title IS NULL OR title = '' THEN 1 ELSE 0 END,
+                title {direction}
+            """
+        )
+
     elif sort_by == "Author":
-        cursor.execute("SELECT book_id, title, authors, average_rating FROM books ORDER BY authors")
+        cursor.execute(
+            f"""
+            SELECT book_id, title, authors, average_rating, list_price
+            FROM books
+            ORDER BY
+                CASE WHEN authors IS NULL OR authors = '' THEN 1 ELSE 0 END,
+                authors {direction}
+            """
+        )
+
     elif sort_by == "Rating":
-        cursor.execute("SELECT book_id, title, authors, average_rating FROM books ORDER BY average_rating DESC")
+        cursor.execute(
+            f"""
+            SELECT book_id, title, authors, average_rating, list_price
+            FROM books
+            ORDER BY
+                CASE WHEN average_rating IS NULL OR average_rating = 0 THEN 1 ELSE 0 END,
+                average_rating {direction}
+            """
+        )
+
     elif sort_by == "Price":
-        cursor.execute("SELECT book_id, title, authors, average_rating FROM books ORDER BY list_price")
+        cursor.execute(
+            f"""
+            SELECT book_id, title, authors, average_rating, list_price
+            FROM books
+            ORDER BY
+                CASE WHEN list_price IS NULL OR list_price = 0 THEN 1 ELSE 0 END,
+                list_price {direction}
+            """
+        )
 
     books = cursor.fetchall()
 
@@ -104,6 +145,7 @@ def sort_books(event):
         book_list.delete(book)
 
     for book in books:
+
         if book[3] == 0.0:
             book = (book[0], book[1], book[2], "")
 
@@ -133,7 +175,7 @@ def show_all_books():
     for book in book_list.get_children():
         book_list.delete(book)
 
-    cursor.execute("SELECT book_id, title, authors, average_rating FROM books")
+    cursor.execute("SELECT book_id, title, authors, average_rating, list_price FROM books")
     books = cursor.fetchall()
 
     for book in books:
@@ -152,7 +194,7 @@ def search_books():
     search_text = search_box.get()
 
     cursor.execute("""
-        SELECT book_id, title, authors, average_rating
+        SELECT book_id, title, authors, average_rating, list_price
         FROM books
         WHERE title LIKE ? OR authors LIKE ?
     """, (f"%{search_text}%", f"%{search_text}%"))
@@ -255,20 +297,34 @@ button_frame2 = tk.Frame(window, bg="#5884B3")
 button_frame2.pack(pady=10)
 
 sort_options = ["Title", "Author", "Rating", "Price"]
+sort_order = ["Ascending", "Descending"]
 
 sort_dropdown = ttk.Combobox(button_frame2, values=sort_options, state="readonly") # read only because you are able to write in the dropdown box thing
 sort_dropdown.set("Title")
 sort_dropdown.pack(side="left", pady=5)
+sort_dropdown.bind("<<ComboboxSelected>>", sort_books)
+
+sort_order_dropdown = ttk.Combobox(button_frame2, values=sort_order, state="readonly") # read only because you are able to write in the dropdown box thing
+sort_order_dropdown.set("Ascending")
+sort_order_dropdown.pack(side="left", padx=5)
+sort_order_dropdown.bind("<<ComboboxSelected>>", sort_books)
 
 refresh_button = tk.Button(button_frame2, text="Refresh", command=refresh_books)
 refresh_button.pack(side="left", padx=5)
 
-book_list = ttk.Treeview(window, columns=("ID", "Title", "Author", "Rating"), show="headings")
+book_list = ttk.Treeview(window, columns=("ID", "Title", "Author", "Rating", "Price"), show="headings")
 
 book_list.heading("ID", text="ID")
 book_list.heading("Title", text="Title")
 book_list.heading("Author", text="Author")
 book_list.heading("Rating", text="Rating")
+book_list.heading("Price", text="price")
+
+book_list.column("ID", width=50)
+book_list.column("Title", width=300)
+book_list.column("Author", width=200)
+book_list.column("Rating", width=80)
+book_list.column("Price", width=80)
 
 book_list.pack(fill="both", expand=True, padx=20, pady=20)
 book_list.bind("<<TreeviewSelect>>", show_book_details)
