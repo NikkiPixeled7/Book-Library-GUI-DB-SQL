@@ -172,7 +172,7 @@ def show_all_books():
     loading_label = tk.Label(
         loading_window,
         text="Loading books...\nThis may take up to 10 seconds.",
-        font=("Arial", 12),
+        font=("Times New Roman", 12),
         bg="#5884B3",
         fg="white"
     )
@@ -456,12 +456,18 @@ def delete_book():
 window = tk.Tk()
 window.configure(bg="#5884B3")
 
-window.title("Library Database")
+window.title("Library Database V1.0.4")
 
 window.geometry("900x650")
 
-title_label = tk.Label(window, text="Library Database", font=("Arial", 24), bg="#5884B3")
-title_label.pack(pady=20)
+title_label = tk.Label(window, text="Library Database", font=("Times New Roman", 24, "bold"), bg="#5884B3")
+title_label.pack(pady=7)
+
+subtitle_label = tk.Label(window, text="✨ Search, sort, and manage your book collection ✨", font=("Segoe UI", 12, "italic"), bg="#5884B3")
+subtitle_label.pack(pady=0)
+
+author_label = tk.Label(window, text="Created by Nick.C", font=("Times New Roman", 8), bg="#5884B3")
+author_label.pack(pady=2)
 
 search_frame = tk.Frame(window, bg="#5884B3")
 search_frame.pack(pady=10)
@@ -534,7 +540,7 @@ info_title = tk.Label(
     info_frame,
     text="Book Details",
     bg="#5884B3",
-    font=("Arial", 12, "bold")
+    font=("Times New Roman", 12, "bold")
 )
 
 info_title.pack(anchor="w")
@@ -555,7 +561,7 @@ info_scrollbar.pack(side="right", fill="y")
 details_textbox = tk.Text(
     info_content_frame,
     bg="#AFB1B3",
-    font=("Arial", 10),
+    font=("Times New Roman", 10),
     wrap="word",
     yscrollcommand=info_scrollbar.set
 )
@@ -585,7 +591,7 @@ description_title = tk.Label(
     description_frame,
     text="Description",
     bg="#5884B3",
-    font=("Arial", 12, "bold")
+    font=("Times New Roman", 12, "bold")
 )
 
 description_title.pack(anchor="w")
@@ -606,7 +612,7 @@ description_scrollbar.pack(side="right", fill="y")
 description_textbox = tk.Text(
     description_content_frame,
     bg="#AFB1B3",
-    font=("Arial", 10),
+    font=("Times New Roman", 10),
     wrap="word",
     yscrollcommand=description_scrollbar.set
 )
