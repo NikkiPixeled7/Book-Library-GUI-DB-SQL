@@ -139,6 +139,17 @@ def sort_books(event):
             """
         )
 
+    elif sort_by == "Book ID":
+            cursor.execute(
+                f"""
+                SELECT book_id, title, authors, average_rating, list_price
+                FROM books
+                ORDER BY
+                    CASE WHEN book_id IS NULL OR book_id = '' THEN 1 ELSE 0 END,
+                    book_id {direction}
+                """
+            )
+
     books = cursor.fetchall()
 
     for book in book_list.get_children():
@@ -260,9 +271,10 @@ def show_book_details(event):
         description = description[:700] + "..."
 
 def add_book():
+
     add_window = tk.Toplevel(window)
     add_window.title("Add Book")
-    add_window.geometry("400x600")
+    add_window.geometry("500x525")
     add_window.configure(bg="#5884B3")
 
     labels = [
@@ -276,62 +288,144 @@ def add_book():
 
     for i, label in enumerate(labels):
 
-        tk.Label(add_window, text=label + ":", bg="#5884B3").grid(row=i, column=0, sticky="e", padx=5, pady=5)
-        entry = tk.Entry(add_window, width=30)
-        entry.grid(row=i, column=1, padx=5, pady=5)
+        tk.Label(
+            add_window,
+            text=label + ":",
+            bg="#5884B3"
+        ).grid(
+            row=i,
+            column=0,
+            sticky="e",
+            padx=5,
+            pady=5
+        )
+
+        entry = tk.Entry(
+            add_window,
+            width=30
+        )
+
+        entry.grid(
+            row=i,
+            column=1,
+            padx=5,
+            pady=5
+        )
+
         entries[label] = entry
-        
+
+
     def save_book():
+
         title = entries["Title"].get()
         subtitle = entries["Subtitle"].get()
         authors = entries["Authors"].get()
         publisher = entries["Publisher"].get()
         published_date = entries["Published Date"].get()
         description = entries["Description"].get()
-        page_count = int(entries["Page Count"].get() or 0)
         categories = entries["Categories"].get()
-        average_rating = float(entries["Average Rating"].get() or 0)
-        ratings_count = int(entries["Ratings Count"].get() or 0)
         language = entries["Language"].get()
         isbn_13 = entries["ISBN-13"].get()
         isbn_10 = entries["ISBN-10"].get()
-        list_price = float(entries["List Price"].get() or 0)
         currency = entries["Currency"].get()
 
         if title == "":
-            tk.messagebox.showerror("Error", "Title required..")
+            messagebox.showerror(
+                "Error",
+                "Title is required."
+            )
             return
 
         try:
-            pages = int(pages) if pages else 0
-            rating = float(rating) if rating else 0
-            ratings_count = int(ratings_count) if ratings_count else 0
-            price = float(price) if price else 0
 
-            cursor.execute("""
-                INSERT INTO books (
-                    title, subtitle, authors, publisher, published_date,
-                    description, page_count, categories, average_rating,
-                    ratings_count, language, isbn_13, isbn_10,
-                    list_price, currency
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (title, subtitle, authors, publisher, published_date, description, page_count, categories, average_rating, ratings_count, language, isbn_13, isbn_10, list_price, currency))
+            page_count = int(
+                entries["Page Count"].get() or 0
+            )
 
-            connection.commit()
+            average_rating = float(
+                entries["Average Rating"].get() or 0
+            )
 
-            tk.messagebox.showinfo("Success", "Book added..")
+            ratings_count = int(
+                entries["Ratings Count"].get() or 0
+            )
 
-            add_window.destroy()
-            refresh_books()
+            list_price = float(
+                entries["List Price"].get() or 0
+            )
+
         except ValueError:
-            tk.messagebox.showerror("Error", "Pages, rating, ratings count, and price must be numbers")
 
-        tk.Button(
-            add_window,
-            text="Add Book",
-            command=save_book
-        ).grid(row=len(labels), column=0, columnspan=2, pady=15)
+            messagebox.showerror(
+                "Error",
+                "Pages, rating, ratings count, and price must be numbers."
+            )
+
+            return
+
+
+        cursor.execute("""
+            INSERT INTO books (
+                title,
+                subtitle,
+                authors,
+                publisher,
+                published_date,
+                description,
+                page_count,
+                categories,
+                average_rating,
+                ratings_count,
+                language,
+                isbn_13,
+                isbn_10,
+                list_price,
+                currency
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            title,
+            subtitle,
+            authors,
+            publisher,
+            published_date,
+            description,
+            page_count,
+            categories,
+            average_rating,
+            ratings_count,
+            language,
+            isbn_13,
+            isbn_10,
+            list_price,
+            currency
+        ))
+
+        connection.commit()
+
+        messagebox.showinfo(
+            "Success",
+            "Book added successfully!"
+        )
+
+        add_window.destroy()
+
+        refresh_books()
+
+
+    # This button is OUTSIDE save_book()
+    add_submit_button = tk.Button(
+        add_window,
+        text="Add Book",
+        command=save_book
+    )
+
+    add_submit_button.grid(
+        row=len(labels),
+        column=0,
+        columnspan=2,
+        pady=15
+    )
 
 def delete_book():
 
@@ -380,6 +474,7 @@ search_box.pack(side="left", padx=5)
 
 search_button = tk.Button(search_frame, text="Search", command=search_books)
 search_button.pack(side="left", padx=5)
+window.bind("<Return>", lambda event: search_books())
 
 button_frame = tk.Frame(window, bg="#5884B3")
 button_frame.pack(pady=10)
@@ -396,7 +491,7 @@ delete_button.pack(side="left", padx=5)
 button_frame2 = tk.Frame(window, bg="#5884B3")
 button_frame2.pack(pady=10)
 
-sort_options = ["Title", "Author", "Rating", "Price"]
+sort_options = ["Title", "Author", "Rating", "Price", "Book ID"]
 sort_order = ["Ascending", "Descending"]
 
 sort_dropdown = ttk.Combobox(button_frame2, values=sort_options, state="readonly") # read only because you are able to write in the dropdown box thing
