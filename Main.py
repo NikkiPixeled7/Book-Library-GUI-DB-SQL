@@ -1,7 +1,7 @@
 import sqlite3
 import csv
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 connection = sqlite3.connect("library.db")
 
@@ -259,6 +259,106 @@ def show_book_details(event):
     if len(description) > 700:
         description = description[:700] + "..."
 
+def add_book():
+    add_window = tk.Toplevel(window)
+    add_window.title("Add Book")
+    add_window.geometry("400x600")
+    add_window.configure(bg="#5884B3")
+
+    labels = [
+        "Title", "Subtitle", "Authors", "Publisher", "Published Date",
+        "Description", "Page Count", "Categories", "Average Rating",
+        "Ratings Count", "Language", "ISBN-13", "ISBN-10",
+        "List Price", "Currency"
+    ]
+
+    entries = {}
+
+    for i, label in enumerate(labels):
+
+        tk.Label(add_window, text=label + ":", bg="#5884B3").grid(row=i, column=0, sticky="e", padx=5, pady=5)
+        entry = tk.Entry(add_window, width=30)
+        entry.grid(row=i, column=1, padx=5, pady=5)
+        entries[label] = entry
+        
+    def save_book():
+        title = entries["Title"].get()
+        subtitle = entries["Subtitle"].get()
+        authors = entries["Authors"].get()
+        publisher = entries["Publisher"].get()
+        published_date = entries["Published Date"].get()
+        description = entries["Description"].get()
+        page_count = int(entries["Page Count"].get() or 0)
+        categories = entries["Categories"].get()
+        average_rating = float(entries["Average Rating"].get() or 0)
+        ratings_count = int(entries["Ratings Count"].get() or 0)
+        language = entries["Language"].get()
+        isbn_13 = entries["ISBN-13"].get()
+        isbn_10 = entries["ISBN-10"].get()
+        list_price = float(entries["List Price"].get() or 0)
+        currency = entries["Currency"].get()
+
+        if title == "":
+            tk.messagebox.showerror("Error", "Title required..")
+            return
+
+        try:
+            pages = int(pages) if pages else 0
+            rating = float(rating) if rating else 0
+            ratings_count = int(ratings_count) if ratings_count else 0
+            price = float(price) if price else 0
+
+            cursor.execute("""
+                INSERT INTO books (
+                    title, subtitle, authors, publisher, published_date,
+                    description, page_count, categories, average_rating,
+                    ratings_count, language, isbn_13, isbn_10,
+                    list_price, currency
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (title, subtitle, authors, publisher, published_date, description, page_count, categories, average_rating, ratings_count, language, isbn_13, isbn_10, list_price, currency))
+
+            connection.commit()
+
+            tk.messagebox.showinfo("Success", "Book added..")
+
+            add_window.destroy()
+            refresh_books()
+        except ValueError:
+            tk.messagebox.showerror("Error", "Pages, rating, ratings count, and price must be numbers")
+
+        tk.Button(
+            add_window,
+            text="Add Book",
+            command=save_book
+        ).grid(row=len(labels), column=0, columnspan=2, pady=15)
+
+def delete_book():
+
+    selected = book_list.selection()
+
+    if not selected:
+        messagebox.showerror("Error", "No book selected..")
+        return
+
+    book = book_list.item(selected[0], "values")
+    book_id = book[0]
+    title = book[1]
+
+    confirm = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete '{title}'?")
+
+    if not confirm:
+        return
+
+    cursor.execute("DELETE FROM books WHERE book_id = ?", (book_id,))
+
+    connection.commit()
+
+    messagebox.showinfo(
+        "Success", f"Book '{title}' deleted successfully."
+    )
+
+    refresh_books()
 window = tk.Tk()
 window.configure(bg="#5884B3")
 
@@ -287,10 +387,10 @@ button_frame.pack(pady=10)
 show_all_button = tk.Button(button_frame, text="Show All", command=show_all_books)
 show_all_button.pack(side="left", padx=5)
 
-add_button = tk.Button(button_frame, text="Add Book")
+add_button = tk.Button(button_frame, text="Add Book", command=add_book)
 add_button.pack(side="left", padx=5)
 
-delete_button = tk.Button(button_frame, text="Delete Book")
+delete_button = tk.Button(button_frame, text="Delete Book", command=delete_book)
 delete_button.pack(side="left", padx=5)
 
 button_frame2 = tk.Frame(window, bg="#5884B3")
