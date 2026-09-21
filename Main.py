@@ -28,6 +28,17 @@ CREATE TABLE IF NOT EXISTS books (
 )
 """)
 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+username TEXT PRIMARY KEY,
+password TEXT)
+""")
+
+cursor.execute("""
+INSERT OR IGNORE INTO users (username, password)
+VALUES (?, ?)
+""", ("Nick", "8888"))
+
 cursor.execute("SELECT COUNT(*) FROM books")
 book_count = cursor.fetchone()[0]
 
@@ -412,8 +423,6 @@ def add_book():
 
         refresh_books()
 
-
-    # This button is OUTSIDE save_book()
     add_submit_button = tk.Button(
         add_window,
         text="Add Book",
@@ -453,183 +462,279 @@ def delete_book():
     )
 
     refresh_books()
-window = tk.Tk()
-window.configure(bg="#5884B3")
 
-window.title("Library Database V1.0.4")
 
-window.geometry("900x650")
+def home_screen():
 
-title_label = tk.Label(window, text="Library Database", font=("Times New Roman", 24, "bold"), bg="#5884B3")
-title_label.pack(pady=7)
+    home_window = tk.Tk()
+    home_window.title("HS - Library Database V1.0.5")
+    home_window.geometry("450x500")
+    home_window.configure(bg="#5884B3")
 
-subtitle_label = tk.Label(window, text="✨ Search, sort, and manage your book collection ✨", font=("Segoe UI", 12, "italic"), bg="#5884B3")
-subtitle_label.pack(pady=0)
+    welcome_label = tk.Label(home_window, text="", font=("Times New Roman", 24, "bold"), bg="#5884B3")
+    welcome_label.pack(pady=20)
 
-author_label = tk.Label(window, text="Created by Nick.C", font=("Times New Roman", 8), bg="#5884B3")
-author_label.pack(pady=2)
+    username_label = tk.Label(home_window, text="Username:", font=("Times New Roman", 12), bg="#5884B3")
+    username_label.pack(pady=5)
 
-search_frame = tk.Frame(window, bg="#5884B3")
-search_frame.pack(pady=10)
+    username_entry = tk.Entry(home_window, width=30)
+    username_entry.pack(pady=5)
 
-search_label = tk.Label(search_frame, text="Search:", bg="#5884B3")
-search_label.pack(side="left", padx=5)
+    password_label = tk.Label(home_window, text="Password:", font=("Times New Roman", 12), bg="#5884B3")
+    password_label.pack(pady=5)
 
-search_box = tk.Entry(search_frame, bg="#AFB1B3", width=40)
-search_box.pack(side="left", padx=5)
+    password_entry = tk.Entry(home_window, show="*", width=30)
+    password_entry.pack(pady=5)
 
-search_button = tk.Button(search_frame, text="Search", command=search_books)
-search_button.pack(side="left", padx=5)
-window.bind("<Return>", lambda event: search_books())
+    def operate():
+        message_box_opened = False
+        username = username_entry.get()
+        password = password_entry.get()
 
-button_frame = tk.Frame(window, bg="#5884B3")
-button_frame.pack(pady=10)
+        if username == "" or password == "":
+            if username == "" and password == "":
+                messagebox.showerror(
+                    "Error",
+                    "Username and Password are required.",
+                    message_box_opened = True
+                )
+            elif password == "":
+                messagebox.showerror(
+                    "Error",
+                    "Password is required.",
+                    message_box_opened = True
+                )
+            else:
+                messagebox.showerror(
+                    "Error",
+                    "Unknown Error, Please Retry",
+                    message_box_opened = True
+                )
 
-show_all_button = tk.Button(button_frame, text="Show All", command=show_all_books)
-show_all_button.pack(side="left", padx=5)
+        cursor.execute("""
+        SELECT * FROM users
+        WHERE username = ? AND password = ?
+        """, (username, password))
 
-add_button = tk.Button(button_frame, text="Add Book", command=add_book)
-add_button.pack(side="left", padx=5)
+        user = cursor.fetchone()
 
-delete_button = tk.Button(button_frame, text="Delete Book", command=delete_book)
-delete_button.pack(side="left", padx=5)
+        if user:
+        
+            welcome_label.config(
+                text="Welcome, " + username + "!"
+            )
 
-button_frame2 = tk.Frame(window, bg="#5884B3")
-button_frame2.pack(pady=10)
+        else:
+            if message_box_opened == True:
+                message_box_opened = False
+                pass
+            else:
+                messagebox.showerror(
+                    "Login Failed",
+                    "Incorrect username or password."
+                )
 
-sort_options = ["Title", "Author", "Rating", "Price", "Book ID"]
-sort_order = ["Ascending", "Descending"]
+    operate_button = tk.Button(
+        home_window,
+        text="Operate Database",
+        font=("Times New Roman", 12),
+        command=operate,
+        width=20
+    )
+    operate_button.pack(pady=10)
 
-sort_dropdown = ttk.Combobox(button_frame2, values=sort_options, state="readonly") # read only because you are able to write in the dropdown box thing
-sort_dropdown.set("Title")
-sort_dropdown.pack(side="left", pady=5)
-sort_dropdown.bind("<<ComboboxSelected>>", sort_books)
+    settings_button = tk.Button(
+        home_window,
+        text="Settings",
+        font=("Times New Roman", 12)
+    )
+    settings_button.pack(pady=10)
 
-sort_order_dropdown = ttk.Combobox(button_frame2, values=sort_order, state="readonly") # read only because you are able to write in the dropdown box thing
-sort_order_dropdown.set("Ascending")
-sort_order_dropdown.pack(side="left", padx=5)
-sort_order_dropdown.bind("<<ComboboxSelected>>", sort_books)
+    home_window.mainloop()
 
-refresh_button = tk.Button(button_frame2, text="Refresh", command=refresh_books)
-refresh_button.pack(side="left", padx=5)
+def operate_database():
 
-book_list = ttk.Treeview(window, columns=("ID", "Title", "Author", "Rating", "Price"), show="headings")
+    global window, book_list, search_box, sort_dropdown, sort_order_dropdown, details_textbox, description_textbox
 
-book_list.heading("ID", text="ID")
-book_list.heading("Title", text="Title")
-book_list.heading("Author", text="Author")
-book_list.heading("Rating", text="Rating")
-book_list.heading("Price", text="price")
+    window = tk.Tk()
+    window.configure(bg="#5884B3")
 
-book_list.column("ID", width=50)
-book_list.column("Title", width=300)
-book_list.column("Author", width=200)
-book_list.column("Rating", width=80)
-book_list.column("Price", width=80)
+    window.title("MS - Library Database V1.0.5")
 
-book_list.pack(fill="both", expand=True, padx=20, pady=20)
-book_list.bind("<<TreeviewSelect>>", show_book_details)
+    window.geometry("900x650")
 
-details_frame = tk.Frame(window, bg="#5884B3")
-details_frame.pack(fill="both", expand=True, padx=20, pady=10)
+    title_label = tk.Label(window, text="Library Database", font=("Times New Roman", 24, "bold"), bg="#5884B3")
+    title_label.pack(pady=7)
 
-info_frame = tk.Frame(details_frame, bg="#5884B3")
-info_frame.pack(side="left", fill="both", expand=True, padx=(0, 10))
+    subtitle_label = tk.Label(window, text="✨ Search, sort, and manage your book collection ✨", font=("Segoe UI", 12, "italic"), bg="#5884B3")
+    subtitle_label.pack(pady=0)
 
-info_title = tk.Label(
+    author_label = tk.Label(window, text="Created by Nick.C", font=("Times New Roman", 8), bg="#5884B3")
+    author_label.pack(pady=2)
+
+    search_frame = tk.Frame(window, bg="#5884B3")
+    search_frame.pack(pady=10)
+
+    search_label = tk.Label(search_frame, text="Search:", bg="#5884B3")
+    search_label.pack(side="left", padx=5)
+
+    search_box = tk.Entry(search_frame, bg="#AFB1B3", width=40)
+    search_box.pack(side="left", padx=5)
+
+    search_button = tk.Button(search_frame, text="Search", command=search_books)
+    search_button.pack(side="left", padx=5)
+    window.bind("<Return>", lambda event: search_books())
+
+    button_frame = tk.Frame(window, bg="#5884B3")
+    button_frame.pack(pady=10)
+
+    show_all_button = tk.Button(button_frame, text="Show All", command=show_all_books)
+    show_all_button.pack(side="left", padx=5)
+
+    add_button = tk.Button(button_frame, text="Add Book", command=add_book)
+    add_button.pack(side="left", padx=5)
+
+    delete_button = tk.Button(button_frame, text="Delete Book", command=delete_book)
+    delete_button.pack(side="left", padx=5)
+
+    button_frame2 = tk.Frame(window, bg="#5884B3")
+    button_frame2.pack(pady=10)
+
+    sort_options = ["Title", "Author", "Rating", "Price", "Book ID"]
+    sort_order = ["Ascending", "Descending"]
+
+    sort_dropdown = ttk.Combobox(button_frame2, values=sort_options, state="readonly") # read only because you are able to write in the dropdown box thing
+    sort_dropdown.set("Title")
+    sort_dropdown.pack(side="left", pady=5)
+    sort_dropdown.bind("<<ComboboxSelected>>", sort_books)
+
+    sort_order_dropdown = ttk.Combobox(button_frame2, values=sort_order, state="readonly") # read only because you are able to write in the dropdown box thing
+    sort_order_dropdown.set("Ascending")
+    sort_order_dropdown.pack(side="left", padx=5)
+    sort_order_dropdown.bind("<<ComboboxSelected>>", sort_books)
+
+    refresh_button = tk.Button(button_frame2, text="Refresh", command=refresh_books)
+    refresh_button.pack(side="left", padx=5)
+
+    book_list = ttk.Treeview(window, columns=("ID", "Title", "Author", "Rating", "Price"), show="headings")
+
+    book_list.heading("ID", text="ID")
+    book_list.heading("Title", text="Title")
+    book_list.heading("Author", text="Author")
+    book_list.heading("Rating", text="Rating")
+    book_list.heading("Price", text="price")
+
+    book_list.column("ID", width=50)
+    book_list.column("Title", width=300)
+    book_list.column("Author", width=200)
+    book_list.column("Rating", width=80)
+    book_list.column("Price", width=80)
+
+    book_list.pack(fill="both", expand=True, padx=20, pady=20)
+    book_list.bind("<<TreeviewSelect>>", show_book_details)
+
+    details_frame = tk.Frame(window, bg="#5884B3")
+    details_frame.pack(fill="both", expand=True, padx=20, pady=10)
+
+    info_frame = tk.Frame(details_frame, bg="#5884B3")
+    info_frame.pack(side="left", fill="both", expand=True, padx=(0, 10))
+
+    info_title = tk.Label(
     info_frame,
     text="Book Details",
     bg="#5884B3",
     font=("Times New Roman", 12, "bold")
-)
+    )
 
-info_title.pack(anchor="w")
-
-
-info_content_frame = tk.Frame(info_frame)
-info_content_frame.pack(fill="both", expand=True)
+    info_title.pack(anchor="w")
 
 
-info_scrollbar = tk.Scrollbar(
+    info_content_frame = tk.Frame(info_frame)
+    info_content_frame.pack(fill="both", expand=True)
+
+
+    info_scrollbar = tk.Scrollbar(
     info_content_frame,
     orient="vertical"
-)
+    )
 
-info_scrollbar.pack(side="right", fill="y")
+    info_scrollbar.pack(side="right", fill="y")
 
 
-details_textbox = tk.Text(
+    details_textbox = tk.Text(
     info_content_frame,
     bg="#AFB1B3",
     font=("Times New Roman", 10),
     wrap="word",
     yscrollcommand=info_scrollbar.set
-)
+    )
 
-details_textbox.pack(side="left", fill="both", expand=True)
+    details_textbox.pack(side="left", fill="both", expand=True)
 
-info_scrollbar.config(
+    info_scrollbar.config(
     command=details_textbox.yview
-)
+    )
 
-details_textbox.config(state="disabled")
+    details_textbox.config(state="disabled")
 
-description_frame = tk.Frame(
+    description_frame = tk.Frame(
     details_frame,
     bg="#5884B3"
-)
+    )
 
-description_frame.pack(
+    description_frame.pack(
     side="right",
     fill="both",
     expand=True,
     padx=(10, 0)
-)
+    )
 
 
-description_title = tk.Label(
+    description_title = tk.Label(
     description_frame,
     text="Description",
     bg="#5884B3",
     font=("Times New Roman", 12, "bold")
-)
+    )
 
-description_title.pack(anchor="w")
-
-
-description_content_frame = tk.Frame(description_frame)
-description_content_frame.pack(fill="both", expand=True)
+    description_title.pack(anchor="w")
 
 
-description_scrollbar = tk.Scrollbar(
+    description_content_frame = tk.Frame(description_frame)
+    description_content_frame.pack(fill="both", expand=True)
+
+
+    description_scrollbar = tk.Scrollbar(
     description_content_frame,
     orient="vertical"
-)
+    )
 
-description_scrollbar.pack(side="right", fill="y")
+    description_scrollbar.pack(side="right", fill="y")
 
 
-description_textbox = tk.Text(
+    description_textbox = tk.Text(
     description_content_frame,
     bg="#AFB1B3",
     font=("Times New Roman", 10),
     wrap="word",
     yscrollcommand=description_scrollbar.set
-)
+    )
 
-description_textbox.pack(
+    description_textbox.pack(
     side="left",
     fill="both",
     expand=True
-)
+    )
 
-description_scrollbar.config(
+    description_scrollbar.config(
     command=description_textbox.yview
-)
+    )
 
-description_textbox.config(state="disabled")
+    description_textbox.config(state="disabled")
 
-exit_button = tk.Button(window, text="Exit", command=window.destroy)
-exit_button.pack(pady=10)
+    exit_button = tk.Button(window, text="Exit", command=window.destroy)
+    exit_button.pack(pady=10)
 
-window.mainloop()
+    window.mainloop()
+
+home_screen()
