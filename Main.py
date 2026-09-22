@@ -2,6 +2,7 @@ import sqlite3
 import csv
 import tkinter as tk
 from tkinter import ttk, messagebox
+import time
 
 connection = sqlite3.connect("library.db")
 
@@ -77,6 +78,32 @@ if book_count == 0:
 
     connection.commit()
 
+def animate_loading(popup, label, count=1):
+    if popup.winfo_exists():
+        dots = "." * count
+        label.config(text=f"Logging in{dots}")
+
+        next_count = 1 if count == 3 else count + 1
+
+        popup.after(500, animate_loading, popup, label, next_count)    
+
+def show_popup(place):
+    popup = tk.Toplevel(place)
+    popup.geometry("200x100")
+    popup.title("Loading")
+
+    label = tk.Label(popup, text="Logging in.")
+    label.pack(pady=30)
+
+    animate_loading(popup, label)
+
+    def finish_login():
+        popup.destroy()
+        place.withdraw()
+        operate_database(place)
+
+    popup.after(3000, finish_login)
+    
 def refresh_books():
 
     for book in book_list.get_children():
@@ -467,24 +494,27 @@ def delete_book():
 def home_screen():
 
     home_window = tk.Tk()
-    home_window.title("HS - Library Database V1.0.5")
+    home_window.title("HS - Library Database V1.0.6")
     home_window.geometry("450x500")
     home_window.configure(bg="#5884B3")
 
-    welcome_label = tk.Label(home_window, text="", font=("Times New Roman", 24, "bold"), bg="#5884B3")
-    welcome_label.pack(pady=20)
+    welcome_label = tk.Label(home_window, text="Welcome to the Library Database", font=("Times New Roman", 20, "bold"), bg="#5884B3")
+    welcome_label.pack(pady=13)
+
+    instructions_label = tk.Label(home_window, text="Please Log-In Below", font=("Times New Roman", 12, "bold"), bg="#5884B3")
+    instructions_label.pack(pady=7)
 
     username_label = tk.Label(home_window, text="Username:", font=("Times New Roman", 12), bg="#5884B3")
     username_label.pack(pady=5)
 
     username_entry = tk.Entry(home_window, width=30)
-    username_entry.pack(pady=5)
+    username_entry.pack(pady=2)
 
     password_label = tk.Label(home_window, text="Password:", font=("Times New Roman", 12), bg="#5884B3")
     password_label.pack(pady=5)
 
     password_entry = tk.Entry(home_window, show="*", width=30)
-    password_entry.pack(pady=5)
+    password_entry.pack(pady=2)
 
     def operate():
         message_box_opened = False
@@ -523,6 +553,7 @@ def home_screen():
             welcome_label.config(
                 text="Welcome, " + username + "!"
             )
+            show_popup(home_window)
 
         else:
             if message_box_opened == True:
@@ -541,30 +572,36 @@ def home_screen():
         command=operate,
         width=20
     )
-    operate_button.pack(pady=10)
+    operate_button.pack(pady=15)
 
     settings_button = tk.Button(
         home_window,
         text="Settings",
         font=("Times New Roman", 12)
     )
-    settings_button.pack(pady=10)
+    settings_button.pack(side="bottom", anchor="w", pady=5, padx=5)
 
     home_window.mainloop()
 
-def operate_database():
+def operate_database(home_window):
 
     global window, book_list, search_box, sort_dropdown, sort_order_dropdown, details_textbox, description_textbox
 
-    window = tk.Tk()
+    window = tk.Toplevel(home_window)
     window.configure(bg="#5884B3")
 
-    window.title("MS - Library Database V1.0.5")
+    window.title("MS - Library Database V1.0.6")
 
     window.geometry("900x650")
 
-    title_label = tk.Label(window, text="Library Database", font=("Times New Roman", 24, "bold"), bg="#5884B3")
+    title_frame = tk.Frame(window, bg="#5884B3")
+    title_frame.pack(pady=5)
+
+    title_label = tk.Label(title_frame, text="Library Database", font=("Times New Roman", 24, "bold"), bg="#5884B3")
     title_label.pack(pady=7)
+
+    back_button = tk.Button(title_frame, text="Back", command=back_to_homescreen)
+    back_button.pack(side="left", padx=10)
 
     subtitle_label = tk.Label(window, text="✨ Search, sort, and manage your book collection ✨", font=("Segoe UI", 12, "italic"), bg="#5884B3")
     subtitle_label.pack(pady=0)
@@ -735,6 +772,9 @@ def operate_database():
     exit_button = tk.Button(window, text="Exit", command=window.destroy)
     exit_button.pack(pady=10)
 
-    window.mainloop()
+    def back_to_homescreen():
+        global home
+        window.destroy()
+        home_window.deiconify()
 
 home_screen()
