@@ -3,8 +3,21 @@ import csv
 import tkinter as tk
 from tkinter import ttk, messagebox
 import time
+from cryptography.fernet import Fernet
+import os
 
 connection = sqlite3.connect("library.db")
+
+if os.path.exists("secret.key"):
+    with open("secret.key", "rb") as file:
+        key = file.read()
+else:
+    key = Fernet.generate_key()
+
+    with open("secret.key", "wb") as file:
+        file.write(key)
+
+cipher = Fernet(key)
 
 cursor = connection.cursor()
 
@@ -35,10 +48,13 @@ username TEXT PRIMARY KEY,
 password TEXT)
 """)
 
+encrypted_username = cipher.encrypt("Username".encode()).decode()
+encrypted_password = cipher.encrypt("Password".encode()).decode()
+
 cursor.execute("""
 INSERT OR IGNORE INTO users (username, password)
 VALUES (?, ?)
-""", ("Nick", "8888"))
+""", (encrypted_username, encrypted_password))
 
 cursor.execute("SELECT COUNT(*) FROM books")
 book_count = cursor.fetchone()[0]
@@ -103,7 +119,7 @@ def show_popup(place):
         operate_database(place)
 
     popup.after(3000, finish_login)
-    
+
 def refresh_books():
 
     for book in book_list.get_children():
@@ -119,9 +135,24 @@ def refresh_books():
     for book in books:
 
         if book[3] == 0.0:
-            book = (book[0], book[1], book[2], "")
+            rating = ""
+        else:
+            rating = book[3]
 
-        book_list.insert("", tk.END, values=book)
+        if book[4] == 0.0:
+            price = ""
+        else:
+            price = book[4]
+
+        book = (
+            book[0],
+            book[1],
+            book[2],
+            rating,
+            price
+        )
+
+    book_list.insert("", tk.END, values=book)
 
 def sort_books(event):
 
@@ -490,11 +521,89 @@ def delete_book():
 
     refresh_books()
 
+def developer_add_user(home_window):
+
+    user_window = tk.Toplevel(home_window)
+    user_window.title("Add New User")
+    user_window.geometry("300x220")
+    user_window.configure(bg="#5884B3")
+
+    tk.Label(
+        user_window,
+        text="Add New User",
+        font=("Times New Roman", 18, "bold"),
+        bg="#5884B3"
+    ).pack(pady=10)
+
+    tk.Label(
+        user_window,
+        text="Username:",
+        bg="#5884B3"
+    ).pack()
+
+    username_entry = tk.Entry(user_window)
+    username_entry.pack(pady=5)
+
+    tk.Label(
+        user_window,
+        text="Password:",
+        bg="#5884B3"
+    ).pack()
+
+    password_entry = tk.Entry(user_window, show="*")
+    password_entry.pack(pady=5)
+
+    def confirm_user():
+
+        username = username_entry.get()
+        password = password_entry.get()
+
+        if username == "" or password == "":
+            messagebox.showerror(
+                "Error",
+                "Please enter a username and password."
+            )
+            return
+
+        encrypted_username = cipher.encrypt(
+            username.encode()
+        ).decode()
+
+        encrypted_password = cipher.encrypt(
+            password.encode()
+        ).decode()
+
+        try:
+            cursor.execute("""
+                INSERT INTO users (username, password)
+                VALUES (?, ?)
+            """, (encrypted_username, encrypted_password))
+
+            connection.commit()
+
+            messagebox.showinfo(
+                "Success",
+                "New user added successfully."
+            )
+
+            user_window.destroy()
+
+        except sqlite3.IntegrityError:
+            messagebox.showerror(
+                "Error",
+                "That username already exists."
+            )
+
+    tk.Button(
+        user_window,
+        text="Confirm",
+        command=confirm_user
+    ).pack(pady=12)
 
 def home_screen():
 
     home_window = tk.Tk()
-    home_window.title("HS - Library Database V1.0.6")
+    home_window.title("HS - Library Database V1.0.7")
     home_window.geometry("450x500")
     home_window.configure(bg="#5884B3")
 
@@ -517,91 +626,201 @@ def home_screen():
     password_entry.pack(pady=2)
 
     def operate():
-        message_box_opened = False
+
         username = username_entry.get()
         password = password_entry.get()
 
-        if username == "" or password == "":
-            if username == "" and password == "":
-                messagebox.showerror(
-                    "Error",
-                    "Username and Password are required.",
-                    message_box_opened = True
-                )
-            elif password == "":
-                messagebox.showerror(
-                    "Error",
-                    "Password is required.",
-                    message_box_opened = True
-                )
-            else:
-                messagebox.showerror(
-                    "Error",
-                    "Unknown Error, Please Retry",
-                    message_box_opened = True
-                )
+        if username == "" and password == "":
+            messagebox.showerror(
+                "Error",
+                "Username and Password are required."
+            )
+            return
+
+        elif username == "":
+            messagebox.showerror(
+                "Error",
+                "Username is required."
+            )
+            return
+
+        elif password == "":
+            messagebox.showerror(
+                "Error",
+                "Password is required."
+            )
+            return
 
         cursor.execute("""
-        SELECT * FROM users
-        WHERE username = ? AND password = ?
-        """, (username, password))
+            SELECT username, password
+            FROM users
+        """)
 
-        user = cursor.fetchone()
+        users = cursor.fetchall()
+
+        user = False
+
+        for stored_username, stored_password in users:
+
+            try:
+                decrypted_username = cipher.decrypt(
+                    stored_username.encode()
+                ).decode()
+
+                decrypted_password = cipher.decrypt(
+                    stored_password.encode()
+                ).decode()
+
+                if username == decrypted_username and password == decrypted_password:
+                    user = True
+                    break
+
+            except Exception:
+                pass
 
         if user:
-        
+
             welcome_label.config(
                 text="Welcome, " + username + "!"
             )
+
             show_popup(home_window)
 
         else:
-            if message_box_opened == True:
-                message_box_opened = False
-                pass
-            else:
-                messagebox.showerror(
-                    "Login Failed",
-                    "Incorrect username or password."
-                )
 
-    operate_button = tk.Button(
+            messagebox.showerror(
+                "Login Failed",
+                "Incorrect username or password."
+            )
+
+    login_button = tk.Button(
         home_window,
-        text="Operate Database",
-        font=("Times New Roman", 12),
-        command=operate,
-        width=20
+        text="Log In",
+        command=operate
     )
-    operate_button.pack(pady=15)
 
-    settings_button = tk.Button(
-        home_window,
-        text="Settings",
+    login_button.pack(pady=15)
+
+def search_by_id():
+
+    id_window = tk.Toplevel(window)
+    id_window.title("Search by ID")
+    id_window.geometry("300x150")
+    id_window.configure(bg="#5884B3")
+
+    tk.Label(
+        id_window,
+        text="Enter Book ID:",
+        bg="#5884B3",
         font=("Times New Roman", 12)
-    )
-    settings_button.pack(side="bottom", anchor="w", pady=5, padx=5)
+    ).pack(pady=10)
 
-    home_window.mainloop()
+    id_entry = tk.Entry(id_window, width=25)
+    id_entry.pack()
+
+    def search():
+
+        book_id = id_entry.get()
+
+        if book_id == "":
+            messagebox.showerror(
+                "Error",
+                "Please enter a Book ID."
+            )
+            return
+
+        try:
+            book_id = int(book_id)
+        except ValueError:
+            messagebox.showerror(
+                "Error",
+                "Book ID must be a number."
+            )
+            return
+
+        cursor.execute("""
+            SELECT book_id, title, authors, average_rating, list_price
+            FROM books
+            WHERE book_id = ?
+        """, (book_id,))
+
+        book = cursor.fetchone()
+
+        if book is None:
+            messagebox.showerror(
+                "Error",
+                "No book found with that ID."
+            )
+            return
+
+        # Clear the current list
+        for item in book_list.get_children():
+            book_list.delete(item)
+
+        # Show the found book
+        if book[3] == 0.0:
+            rating = ""
+        else:
+            rating = book[3]
+
+        if book[4] == 0.0:
+            price = ""
+        else:
+            price = book[4]
+
+        book = (
+            book[0],
+            book[1],
+            book[2],
+            rating,
+            price
+        )
+
+        book_list.insert("", tk.END, values=book)
+
+        id_window.destroy()
+
+    tk.Button(
+        id_window,
+        text="Search",
+        command=search
+    ).pack(pady=15) 
 
 def operate_database(home_window):
-
     global window, book_list, search_box, sort_dropdown, sort_order_dropdown, details_textbox, description_textbox
 
     window = tk.Toplevel(home_window)
+
+    def back_to_homescreen():
+        window.destroy()
+        home_window.deiconify()
+
     window.configure(bg="#5884B3")
 
-    window.title("MS - Library Database V1.0.6")
+    window.title("MS - Library Database V1.0.7")
 
     window.geometry("900x650")
 
     title_frame = tk.Frame(window, bg="#5884B3")
-    title_frame.pack(pady=5)
+    title_frame.pack(fill="x", pady=5)
 
-    title_label = tk.Label(title_frame, text="Library Database", font=("Times New Roman", 24, "bold"), bg="#5884B3")
-    title_label.pack(pady=7)
 
-    back_button = tk.Button(title_frame, text="Back", command=back_to_homescreen)
+    back_button = tk.Button(
+        title_frame,
+        text="Back",
+        command=back_to_homescreen,
+        bg="#39B0DF",
+        font=("", 12, "bold")
+    )
     back_button.pack(side="left", padx=10)
+
+    title_label = tk.Label(
+        title_frame,
+        text="Library Database",
+        font=("Times New Roman", 24, "bold"),
+        bg="#5884B3"
+    )
+    title_label.pack(pady=7)
 
     subtitle_label = tk.Label(window, text="✨ Search, sort, and manage your book collection ✨", font=("Segoe UI", 12, "italic"), bg="#5884B3")
     subtitle_label.pack(pady=0)
@@ -631,8 +850,15 @@ def operate_database(home_window):
     add_button = tk.Button(button_frame, text="Add Book", command=add_book)
     add_button.pack(side="left", padx=5)
 
-    delete_button = tk.Button(button_frame, text="Delete Book", command=delete_book)
+    delete_button = tk.Button(button_frame, text="Delete Book", command=delete_book, bg="#FF0000")
     delete_button.pack(side="left", padx=5)
+
+    search_id_button = tk.Button(
+    button_frame,
+    text="Search by ID",
+    command=search_by_id
+)
+    search_id_button.pack(side="left", padx=5)
 
     button_frame2 = tk.Frame(window, bg="#5884B3")
     button_frame2.pack(pady=10)
@@ -771,10 +997,5 @@ def operate_database(home_window):
 
     exit_button = tk.Button(window, text="Exit", command=window.destroy)
     exit_button.pack(pady=10)
-
-    def back_to_homescreen():
-        global home
-        window.destroy()
-        home_window.deiconify()
 
 home_screen()
