@@ -95,6 +95,15 @@ if book_count == 0:
 
     connection.commit()
 
+def center_window(window, width, height):
+
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+
+    x = (screen_width - width) // 2
+    y = (screen_height - height) // 2
+    window.geometry(f"{width}x{height}+{x}+{y}")
+
 def animate_loading(popup, label, count=1):
     if popup.winfo_exists():
         dots = "." * count
@@ -106,7 +115,7 @@ def animate_loading(popup, label, count=1):
 
 def show_popup(place):
     popup = tk.Toplevel(place)
-    popup.geometry("200x100")
+    center_window(popup, 200, 100)
     popup.title("Loading")
 
     label = tk.Label(popup, text="Logging in.")
@@ -237,6 +246,7 @@ def show_all_books():
     loading_window = tk.Toplevel(window)
     loading_window.title("Loading")
     loading_window.geometry("300x120")
+    center_window(loading_window, 300, 120)
     loading_window.configure(bg="#5884B3")
 
     loading_label = tk.Label(
@@ -345,6 +355,7 @@ def add_book():
     add_window = tk.Toplevel(window)
     add_window.title("Add Book")
     add_window.geometry("500x525")
+    center_window(add_window, 500, 525)
     add_window.configure(bg="#5884B3")
 
     labels = [
@@ -512,6 +523,17 @@ def delete_book():
     if not confirm:
         return
 
+    second_confirm = messagebox.askyesno("Double Confirm", f"Are you really sure you want to delete '{title}'?")
+
+    if not second_confirm:
+        return
+
+    third_confirm = messagebox.askyesno("Triple Confirm", "Are you really really sure?")
+
+    if not third_confirm:
+        messagebox.showinfo("Popup", "Phew..")
+        return
+
     cursor.execute("DELETE FROM books WHERE book_id = ?", (book_id,))
 
     connection.commit()
@@ -527,19 +549,20 @@ def developer_add_user(home_window):
     user_window = tk.Toplevel(home_window)
     user_window.title("Add New User")
     user_window.geometry("300x220")
-    user_window.configure(bg="#5884B3")
+    center_window(user_window, 300, 220)
+    user_window.configure(bg="#A158B3")
 
     tk.Label(
         user_window,
         text="Add New User",
         font=("Times New Roman", 18, "bold"),
-        bg="#5884B3"
+        bg="#A158B3"
     ).pack(pady=10)
 
     tk.Label(
         user_window,
         text="Username:",
-        bg="#5884B3"
+        bg="#A158B3"
     ).pack()
 
     username_entry = tk.Entry(user_window)
@@ -548,7 +571,7 @@ def developer_add_user(home_window):
     tk.Label(
         user_window,
         text="Password:",
-        bg="#5884B3"
+        bg="#A158B3"
     ).pack()
 
     password_entry = tk.Entry(user_window, show="*")
@@ -601,7 +624,8 @@ def home_screen():
 
     home_window = tk.Tk()
     home_window.title("HS - Library Database V1.0.7")
-    home_window.geometry("450x500")
+    home_window.geometry("450x375")
+    center_window(home_window, 450, 375)
     home_window.configure(bg="#5884B3")
 
     welcome_label = tk.Label(home_window, text="Welcome to the Library Database", font=("Times New Roman", 20, "bold"), bg="#5884B3")
@@ -706,6 +730,7 @@ def search_by_id():
     id_window = tk.Toplevel(window)
     id_window.title("Search by ID")
     id_window.geometry("300x150")
+    center_window(id_window, 300, 150)
     id_window.configure(bg="#5884B3")
 
     tk.Label(
@@ -795,11 +820,33 @@ def operate_database(home_window):
         window.destroy()
         home_window.deiconify()
 
+    def settings():
+        settings_window = tk.Toplevel(window)
+        settings_window.title("Settings")
+        settings_window.geometry("300x250")
+        center_window(settings_window, 300, 250)
+        settings_window.configure(bg="#C7C8CA")
+
+        tk.Label(
+            settings_window,
+            text="Settings",
+            font=("Times New Roman", 20, "bold"),
+            bg="#C7C8CA"
+        ).pack(pady=10)
+
+        ## settings here buttons and whatnot
+
+        tk.Button(
+        settings_window,
+        text="Close",
+        command=settings_window.destroy
+        ).pack(pady=15)
+
     window.configure(bg="#5884B3")
 
     window.title("MS - Library Database V1.0.7")
 
-    window.geometry("900x650")
+    center_window(window, 900, 650)
 
     title_frame = tk.Frame(window, bg="#5884B3")
     title_frame.pack(fill="x", pady=5)
@@ -813,6 +860,15 @@ def operate_database(home_window):
         font=("", 12, "bold")
     )
     back_button.pack(side="left", padx=10)
+
+    settings_button = tk.Button(
+            title_frame,
+            text="Settings",
+            command=settings,
+            bg="#C7C8CA",
+            font=("", 10, "bold")
+        )
+    settings_button.pack(side="right", padx=10)
 
     title_label = tk.Label(
         title_frame,
