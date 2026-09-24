@@ -44,8 +44,9 @@ CREATE TABLE IF NOT EXISTS books (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
-username TEXT PRIMARY KEY,
-password TEXT)
+    username TEXT PRIMARY KEY,
+    password TEXT
+)
 """)
 
 encrypted_username = cipher.encrypt("Username".encode()).decode()
@@ -54,7 +55,7 @@ encrypted_password = cipher.encrypt("Password".encode()).decode()
 cursor.execute("""
 INSERT OR IGNORE INTO users (username, password)
 VALUES (?, ?)
-""", (encrypted_username, encrypted_password))
+""", ("Username", encrypted_password))
 
 cursor.execute("SELECT COUNT(*) FROM books")
 book_count = cursor.fetchone()[0]
@@ -565,10 +566,6 @@ def developer_add_user(home_window):
             )
             return
 
-        encrypted_username = cipher.encrypt(
-            username.encode()
-        ).decode()
-
         encrypted_password = cipher.encrypt(
             password.encode()
         ).decode()
@@ -577,7 +574,7 @@ def developer_add_user(home_window):
             cursor.execute("""
                 INSERT INTO users (username, password)
                 VALUES (?, ?)
-            """, (encrypted_username, encrypted_password))
+            """, (username, encrypted_password))
 
             connection.commit()
 
@@ -654,40 +651,38 @@ def home_screen():
         cursor.execute("""
             SELECT username, password
             FROM users
-        """)
+            WHERE username = ?
+        """, (username,))
 
-        users = cursor.fetchall()
+        user = cursor.fetchone()
 
-        user = False
-
-        for stored_username, stored_password in users:
+        if user is not None:
+            stored_username = user[0]
+            stored_password = user[1]
 
             try:
-                decrypted_username = cipher.decrypt(
-                    stored_username.encode()
-                ).decode()
-
                 decrypted_password = cipher.decrypt(
                     stored_password.encode()
                 ).decode()
 
-                if username == decrypted_username and password == decrypted_password:
-                    user = True
-                    break
+                if password == decrypted_password:
+                    welcome_label.config(
+                        text="Welcome, " + username + "!"
+                    )
+                    show_popup(home_window)
+                else:
+                    messagebox.showerror(
+                        "Login Failed",
+                        "Incorrect username or password."
+                    )
 
             except Exception:
-                pass
-
-        if user:
-
-            welcome_label.config(
-                text="Welcome, " + username + "!"
-            )
-
-            show_popup(home_window)
+                messagebox.showerror(
+                    "Login Failed",
+                    "There was a problem checking the password."
+                )
 
         else:
-
             messagebox.showerror(
                 "Login Failed",
                 "Incorrect username or password."
@@ -700,6 +695,11 @@ def home_screen():
     )
 
     login_button.pack(pady=15)
+
+    developer_add_login = tk.Button(home_window, text="Dev Add Login", font=("Times New Roman", 6), command=lambda: developer_add_user(home_window), bg="#BF77F6")
+    developer_add_login.pack(side="bottom", anchor="e")
+
+    home_window.mainloop()
 
 def search_by_id():
 
