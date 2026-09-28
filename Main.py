@@ -6,7 +6,57 @@ import time
 from cryptography.fernet import Fernet
 import os
 
+used_font = "Times New Roman"
+
+fonts = ["Times New Roman", "Arial", "Segoe UI"]
+font_index = 0
+
+title_label = ""
+author_label = ""
+info_title = ""
+description_title = ""
+details_textbox = ""
+description_textbox = ""
+subtitle_label = ""
+font_button = ""
+
 connection = sqlite3.connect("library.db")
+
+def change_font():
+    global used_font, font_index
+    global title_label, author_label, info_title
+    global description_title, details_textbox
+    global description_textbox, subtitle_label, font_button
+
+    font_index = (font_index + 1) % len(fonts)
+    used_font = fonts[font_index]
+
+    title_label.config(font=(used_font, 24, "bold"))
+    author_label.config(font=(used_font, 8))
+    info_title.config(font=(used_font, 12, "bold"))
+    description_title.config(font=(used_font, 12, "bold"))
+    details_textbox.config(font=(used_font, 10))
+    description_textbox.config(font=(used_font, 10))
+    subtitle_label.config(font=(used_font, 12, "italic"))
+
+    font_button.config(text="Font: " + used_font)
+
+def default_font():
+
+    global used_font, font_index
+
+    used_font = "Times New Roman"
+    font_index = 0
+
+    title_label.config(font=(used_font, 24, "bold"))
+    author_label.config(font=(used_font, 8))
+    info_title.config(font=(used_font, 12, "bold"))
+    description_title.config(font=(used_font, 12, "bold"))
+    details_textbox.config(font=(used_font, 10))
+    description_textbox.config(font=(used_font, 10))
+    subtitle_label.config(font=(used_font, 12, "italic"))
+
+    font_button.config(text="Change Font")
 
 if os.path.exists("secret.key"):
     with open("secret.key", "rb") as file:
@@ -162,7 +212,7 @@ def refresh_books():
             price
         )
 
-    book_list.insert("", tk.END, values=book)
+        book_list.insert("", tk.END, values=book)
 
 def sort_books(event):
 
@@ -252,7 +302,7 @@ def show_all_books():
     loading_label = tk.Label(
         loading_window,
         text="Loading books...\nThis may take up to 10 seconds.",
-        font=("Times New Roman", 12),
+        font=(used_font, 12),
         bg="#5884B3",
         fg="white"
     )
@@ -555,7 +605,7 @@ def developer_add_user(home_window):
     tk.Label(
         user_window,
         text="Add New User",
-        font=("Times New Roman", 18, "bold"),
+        font=(used_font, 18, "bold"),
         bg="#A158B3"
     ).pack(pady=10)
 
@@ -628,19 +678,19 @@ def home_screen():
     center_window(home_window, 450, 375)
     home_window.configure(bg="#5884B3")
 
-    welcome_label = tk.Label(home_window, text="Welcome to the Library Database", font=("Times New Roman", 20, "bold"), bg="#5884B3")
+    welcome_label = tk.Label(home_window, text="Welcome to the Library Database", font=(used_font, 20, "bold"), bg="#5884B3")
     welcome_label.pack(pady=13)
 
-    instructions_label = tk.Label(home_window, text="Please Log-In Below", font=("Times New Roman", 12, "bold"), bg="#5884B3")
+    instructions_label = tk.Label(home_window, text="Please Log-In Below", font=(used_font, 12, "bold"), bg="#5884B3")
     instructions_label.pack(pady=7)
 
-    username_label = tk.Label(home_window, text="Username:", font=("Times New Roman", 12), bg="#5884B3")
+    username_label = tk.Label(home_window, text="Username:", font=(used_font, 12), bg="#5884B3")
     username_label.pack(pady=5)
 
     username_entry = tk.Entry(home_window, width=30)
     username_entry.pack(pady=2)
 
-    password_label = tk.Label(home_window, text="Password:", font=("Times New Roman", 12), bg="#5884B3")
+    password_label = tk.Label(home_window, text="Password:", font=(used_font, 12), bg="#5884B3")
     password_label.pack(pady=5)
 
     password_entry = tk.Entry(home_window, show="*", width=30)
@@ -720,8 +770,9 @@ def home_screen():
 
     login_button.pack(pady=15)
     home_window.bind("<Return>", lambda event: operate())
+    home_window.bind("<quoteleft>", lambda event: show_popup(home_window))
 
-    developer_add_login = tk.Button(home_window, text="Dev Add Login", font=("Times New Roman", 6), command=lambda: developer_add_user(home_window), bg="#BF77F6")
+    developer_add_login = tk.Button(home_window, text="Dev Add Login", font=(used_font, 6), command=lambda: developer_add_user(home_window), bg="#BF77F6")
     developer_add_login.pack(side="bottom", anchor="e")
 
     home_window.mainloop()
@@ -738,7 +789,7 @@ def search_by_id():
         id_window,
         text="Enter Book ID:",
         bg="#5884B3",
-        font=("Times New Roman", 12)
+        font=(used_font, 12)
     ).pack(pady=10)
 
     id_entry = tk.Entry(id_window, width=25)
@@ -813,7 +864,19 @@ def search_by_id():
     ).pack(pady=15) 
 
 def operate_database(home_window):
-    global window, book_list, search_box, sort_dropdown, sort_order_dropdown, details_textbox, description_textbox
+    global window
+    global book_list
+    global search_box
+    global sort_dropdown
+    global sort_order_dropdown
+    global details_textbox
+    global description_textbox
+    global title_label
+    global author_label
+    global info_title
+    global description_title
+    global subtitle_label
+    global font_button
 
     window = tk.Toplevel(home_window)
 
@@ -822,6 +885,7 @@ def operate_database(home_window):
         home_window.deiconify()
 
     def settings():
+        global font_button
         settings_window = tk.Toplevel(window)
         settings_window.title("Settings")
         settings_window.geometry("300x250")
@@ -831,16 +895,30 @@ def operate_database(home_window):
         tk.Label(
             settings_window,
             text="Settings",
-            font=("Times New Roman", 20, "bold"),
+            font=(used_font, 20, "bold"),
             bg="#C7C8CA"
         ).pack(pady=10)
 
         ## settings here buttons and whatnot
 
+        font_button = tk.Button(
+            settings_window,
+            text="Change Font",
+            command=change_font
+        )
+        font_button.pack(pady=5)
+
+        default_font_button = tk.Button(
+            settings_window,
+            text="Default Font",
+            command=default_font
+        )
+        default_font_button.pack(pady=5)
+
         tk.Button(
-        settings_window,
-        text="Close",
-        command=settings_window.destroy
+            settings_window,
+            text="Close",
+            command=settings_window.destroy
         ).pack(pady=15)
 
     window.configure(bg="#5884B3")
@@ -874,7 +952,7 @@ def operate_database(home_window):
     title_label = tk.Label(
         title_frame,
         text="Library Database",
-        font=("Times New Roman", 24, "bold"),
+        font=(used_font, 24, "bold"),
         bg="#5884B3"
     )
     title_label.pack(pady=7)
@@ -882,7 +960,7 @@ def operate_database(home_window):
     subtitle_label = tk.Label(window, text="✨ Search, sort, and manage your book collection ✨", font=("Segoe UI", 12, "italic"), bg="#5884B3")
     subtitle_label.pack(pady=0)
 
-    author_label = tk.Label(window, text="Created by Nick.C", font=("Times New Roman", 8), bg="#5884B3")
+    author_label = tk.Label(window, text="Created by Nick.C", font=(used_font, 8), bg="#5884B3")
     author_label.pack(pady=2)
 
     search_frame = tk.Frame(window, bg="#5884B3")
@@ -963,7 +1041,7 @@ def operate_database(home_window):
     info_frame,
     text="Book Details",
     bg="#5884B3",
-    font=("Times New Roman", 12, "bold")
+    font=(used_font, 12, "bold")
     )
 
     info_title.pack(anchor="w")
@@ -984,7 +1062,7 @@ def operate_database(home_window):
     details_textbox = tk.Text(
     info_content_frame,
     bg="#AFB1B3",
-    font=("Times New Roman", 10),
+    font=(used_font, 10),
     wrap="word",
     yscrollcommand=info_scrollbar.set
     )
@@ -1014,7 +1092,7 @@ def operate_database(home_window):
     description_frame,
     text="Description",
     bg="#5884B3",
-    font=("Times New Roman", 12, "bold")
+    font=(used_font, 12, "bold")
     )
 
     description_title.pack(anchor="w")
@@ -1035,7 +1113,7 @@ def operate_database(home_window):
     description_textbox = tk.Text(
     description_content_frame,
     bg="#AFB1B3",
-    font=("Times New Roman", 10),
+    font=(used_font, 10),
     wrap="word",
     yscrollcommand=description_scrollbar.set
     )
