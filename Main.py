@@ -20,7 +20,58 @@ description_textbox = ""
 subtitle_label = ""
 font_button = ""
 
+currency_button = ""
+
+currency_options = ["CAD", "USD", "EUR"]
+currency_index = 0
+
+exchange_rates = {
+    "CAD": 1.00,
+    "USD": 0.73,
+    "EUR": 0.63
+}
+
+background_button = ""
+
+background_colours = [
+    "#5884B3",  # Original Blue
+    "#2F3E46",  # Dark Blue-Gray
+    "#52796F",  # Forest Green
+    "#6D597A",  # Muted Purple
+    "#8A6F47",  # Brown
+    "#B56576",  # Muted Rose
+    "#F2F2F2"   # Light Gray
+]
+
+background_index = 0
+
 connection = sqlite3.connect("library.db")
+
+def change_background():
+    global background_index
+    global background_button
+
+    background_index = (background_index + 1) % len(background_colours)
+
+    new_colour = background_colours[background_index]
+
+    window.config(bg=new_colour)
+
+    def change_widget(widget):
+        try:
+            if isinstance(widget, (tk.Frame, tk.Label)):
+                widget.config(bg=new_colour)
+        except:
+            pass
+
+        for child in widget.winfo_children():
+            change_widget(child)
+
+    change_widget(window)
+
+    background_button.config(
+        text="Background: " + new_colour
+    )
 
 def change_font():
     global used_font, font_index
@@ -57,6 +108,27 @@ def default_font():
     subtitle_label.config(font=(used_font, 12, "italic"))
 
     font_button.config(text="Change Font")
+
+def change_currency():
+
+    global currency_index
+    global currency_button
+
+    currency_index = (currency_index + 1) % len(currency_options)
+
+    currency_button.config(
+        text="Currency: " + currency_options[currency_index]
+    )
+
+    refresh_books()
+
+def convert_price(price):
+
+    currency = currency_options[currency_index]
+
+    converted_price = price * exchange_rates[currency]
+
+    return round(converted_price, 2)
 
 if os.path.exists("secret.key"):
     with open("secret.key", "rb") as file:
@@ -202,7 +274,7 @@ def refresh_books():
         if book[4] == 0.0:
             price = ""
         else:
-            price = book[4]
+            price = convert_price(book[4])
 
         book = (
             book[0],
@@ -287,7 +359,22 @@ def sort_books(event):
     for book in books:
 
         if book[3] == 0.0:
-            book = (book[0], book[1], book[2], "")
+            rating = ""
+        else:
+            rating = book[3]
+
+        if book[4] == 0.0:
+            price = ""
+        else:
+            price = convert_price(book[4])
+
+        book = (
+            book[0],
+            book[1],
+            book[2],
+            rating,
+            price
+        )
 
         book_list.insert("", tk.END, values=book)
 
@@ -320,8 +407,24 @@ def show_all_books():
     books = cursor.fetchall()
 
     for book in books:
+
         if book[3] == 0.0:
-            book = (book[0], book[1], book[2], "")
+            rating = ""
+        else:
+            rating = book[3]
+
+        if book[4] == 0.0:
+            price = ""
+        else:
+            price = convert_price(book[4])
+
+        book = (
+            book[0],
+            book[1],
+            book[2],
+            rating,
+            price
+        )
 
         book_list.insert("", tk.END, values=book)
 
@@ -343,8 +446,24 @@ def search_books():
     books = cursor.fetchall()
 
     for book in books:
+
         if book[3] == 0.0:
-            book = (book[0], book[1], book[2], "")
+            rating = ""
+        else:
+            rating = book[3]
+
+        if book[4] == 0.0:
+            price = ""
+        else:
+            price = convert_price(book[4])
+
+        book = (
+            book[0],
+            book[1],
+            book[2],
+            rating,
+            price
+        )
 
         book_list.insert("", tk.END, values=book)
 
@@ -369,6 +488,11 @@ def show_book_details(event):
 
     details = cursor.fetchone()
 
+    if details[13] == 0.0:
+        display_price = ""
+    else:
+        display_price = convert_price(details[13])
+
     details_text = (
         "Title: " + str(details[0]) + "\n\n"
         "Subtitle: " + str(details[1]) + "\n\n"
@@ -382,7 +506,7 @@ def show_book_details(event):
         "Language: " + str(details[10]) + "\n\n"
         "ISBN-13: " + str(details[11]) + "\n\n"
         "ISBN-10: " + str(details[12]) + "\n\n"
-        "Price: " + str(details[13]) + " " + str(details[14])
+        "Price: " + str(display_price) + " " + currency_options[currency_index]
     )
 
     details_textbox.config(state="normal")
@@ -843,7 +967,7 @@ def search_by_id():
         if book[4] == 0.0:
             price = ""
         else:
-            price = book[4]
+            price = convert_price(book[4])
 
         book = (
             book[0],
@@ -877,6 +1001,8 @@ def operate_database(home_window):
     global description_title
     global subtitle_label
     global font_button
+    global window
+    global background_button
 
     window = tk.Toplevel(home_window)
 
@@ -885,7 +1011,7 @@ def operate_database(home_window):
         home_window.deiconify()
 
     def settings():
-        global font_button
+        global font_button, currency_button, background_button
         settings_window = tk.Toplevel(window)
         settings_window.title("Settings")
         settings_window.geometry("300x250")
@@ -914,6 +1040,21 @@ def operate_database(home_window):
             command=default_font
         )
         default_font_button.pack(pady=5)
+
+        currency_button = tk.Button(
+            settings_window,
+            text="Currency: CAD",
+            command=change_currency
+        )
+        currency_button.pack(pady=5)
+
+        background_button = tk.Button(
+            settings_window,
+            text="Background Colour",
+            command=change_background
+        )
+
+        background_button.pack(pady=5)
 
         tk.Button(
             settings_window,
