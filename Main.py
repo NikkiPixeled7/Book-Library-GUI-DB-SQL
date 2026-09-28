@@ -719,6 +719,7 @@ def home_screen():
     )
 
     login_button.pack(pady=15)
+    home_window.bind("<Return>", lambda event: operate())
 
     developer_add_login = tk.Button(home_window, text="Dev Add Login", font=("Times New Roman", 6), command=lambda: developer_add_user(home_window), bg="#BF77F6")
     developer_add_login.pack(side="bottom", anchor="e")
