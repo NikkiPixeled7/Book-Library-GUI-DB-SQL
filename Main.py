@@ -252,6 +252,21 @@ def show_popup(place):
 
     popup.after(3000, finish_login)
 
+def show_popup2(place):
+    popup = tk.Toplevel(place)
+    center_window(popup, 200, 100)
+    popup.title("Loading")
+
+    label = tk.Label(popup, text="Logging in.")
+    label.pack(pady=30)
+
+    def finish_login():
+        popup.destroy()
+        place.withdraw()
+        operate_database(place)
+
+    popup.after(10, finish_login)
+
 def refresh_books():
 
     for book in book_list.get_children():
@@ -894,7 +909,7 @@ def home_screen():
 
     login_button.pack(pady=15)
     home_window.bind("<Return>", lambda event: operate())
-    home_window.bind("<quoteleft>", lambda event: show_popup(home_window))
+    home_window.bind("<quoteleft>", lambda event: show_popup2(home_window))
 
     developer_add_login = tk.Button(home_window, text="Dev Add Login", font=(used_font, 6), command=lambda: developer_add_user(home_window), bg="#BF77F6")
     developer_add_login.pack(side="bottom", anchor="e")
