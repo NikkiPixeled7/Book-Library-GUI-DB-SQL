@@ -812,7 +812,7 @@ def developer_add_user(home_window):
 def home_screen():
 
     home_window = tk.Tk()
-    home_window.title("HS - Library Database V1.0.7")
+    home_window.title("HS - Library Database V1.1.8")
     home_window.geometry("450x375")
     center_window(home_window, 450, 375)
     home_window.configure(bg="#5884B3")
@@ -1079,7 +1079,7 @@ def operate_database(home_window):
 
     window.configure(bg="#5884B3")
 
-    window.title("MS - Library Database V1.0.7")
+    window.title("MS - Library Database V1.1.8")
 
     center_window(window, 900, 650)
 
